@@ -70,5 +70,55 @@ class Vox(object):
                 name = dataset+histtype # name of this combination
                 pmf = pc.pmf(getattr(self, 'hist_'+name))
                 setattr(self, 'pmf_'+name, pmf)
-    
-    
+
+
+class Grid(object):
+    """ A container for various objects conforming to a regular 2D grid of even size covering entire plot area:
+        
+        Grid indexing [i, j] is [y, x], with 0,0 at top left
+        
+        Key attributes:
+            centres ::: 3D array containing x (at [:,:,0]) and y ([:,:,1]) coordinate components of grid cell centre
+            """
+    def __init__(self, plot_bounds, grid_size):
+        
+        self._plot_bounds = plot_bounds
+        self._input_grid_size = grid_size # input is not always real resolution
+        self._set_up_xy(plot_bounds, grid_size)
+        
+    def _set_up_xy(self, plot_bounds, grid_size):
+        """ Set up an evenly spaced grid over plot area with grid spacing as close as possible to grid_size."""
+        
+        n_x = round(np.diff(plot_bounds['x'])/(grid_size*1.))
+        n_y = round(np.diff(plot_bounds['y'])/(grid_size*1.))
+        
+        # Determine edges of grid
+        x_edges = np.linspace(*plot_bounds['x'], num=n_x+1)
+        y_edges = np.linspace(*plot_bounds['y'], num=n_y+1)
+        
+        # Find effective resolutions, given automatic determination of intervals
+        res_x = np.mean(x_edges[1:]-x_edges[:-1])
+        res_y = np.mean(y_edges[1:]-y_edges[:-1])
+        xy_area = res_x*res_y # area covered by a grid cell
+        
+        # Determine grid points (coordinates of centre)
+        x_centres = (x_edges[1:] + x_edges[:-1]) / (1.*2)
+        y_centres = (y_edges[1:] + y_edges[:-1]) / (1.*2)
+        
+        # Create 3D grid of 
+        xy_grid = np.dstack([np.tile(x_centres, (n_y, 1)), np.tile(y_centres, (n_x, 1)).T])
+        
+        self.grid_size = (res_x, res_y)
+        self.centres = xy_grid  
+        
+    def find_cell(self, x, y):
+        """ Return the [i, j] matrix position of the object centred at the supplied (x, y) coordinates.
+        Only works for exact matches (otherwise None)
+        """
+        xs, ys = np.rollaxis(self.centres, 2)
+        i, j = np.where(np.logical_and(xs == x, ys == y))
+        try:
+            ij = int(i), int(j)
+        except TypeError:
+            ij = None
+        return ij
