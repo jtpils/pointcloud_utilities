@@ -78,7 +78,7 @@ class Grid(object):
         Grid indexing [i, j] is [y, x], with 0,0 at top left
         
         Key attributes:
-            centres ::: 3D array containing x (at [:,:,0]) and y ([:,:,1]) coordinate components of grid cell centre
+            centres ::: 3D array containing x (at [0,:,:]) and y ([1,:,:]) coordinate components of grid cell centre
             """
     def __init__(self, plot_bounds, grid_size):
         
@@ -105,9 +105,12 @@ class Grid(object):
         x_centres = (x_edges[1:] + x_edges[:-1]) / (1.*2)
         y_centres = (y_edges[1:] + y_edges[:-1]) / (1.*2)
         
-        # Create 3D grid of 
-        xy_grid = np.dstack([np.tile(x_centres, (n_y, 1)), np.tile(y_centres, (n_x, 1)).T])
+        # Create 3D grid showing xs [0,:,:] and ys [1,:,:]
+        xs = np.tile(x_centres[np.newaxis, :], (n_y, 1))
+        ys = np.tile(y_centres[:, np.newaxis], (1, n_x))
+        xy_grid = np.concatenate([xs[np.newaxis,:,:], ys[np.newaxis,:,:]])
         
+        # Store grid and resolution
         self.grid_size = (res_x, res_y)
         self.centres = xy_grid  
         
@@ -115,7 +118,7 @@ class Grid(object):
         """ Return the [i, j] matrix position of the object centred at the supplied (x, y) coordinates.
         Only works for exact matches (otherwise None)
         """
-        xs, ys = np.rollaxis(self.centres, 2)
+        xs, ys = self.centres
         i, j = np.where(np.logical_and(xs == x, ys == y))
         try:
             ij = int(i), int(j)
