@@ -114,6 +114,7 @@ class Grid(object):
         
         # Store grid and resolution
         self.centres = xy_grid
+        self.shape = (n_y, n_x)
         self.grid_size = (res_x, res_y)
         
         # Store edges (should ideally be a single array)
@@ -139,28 +140,39 @@ class Grid(object):
         
         Very slow, and could be sped up by reading directly from file/tiles rather than larger PointCloud.
         ."""
+        # Loop over grid, slicing voxels (takes a min)
+        
+        ALS_grid = self._grid_dataset(ALS, 'ALS')
+        TLS_grid = self._grid_dataset(TLS, 'TLS')
+        
+        PC_grid = np.concatenate([ALS_grid[np.newaxis,:,:], TLS_grid[np.newaxis,:,:]])
+        
+        self.PCs = PC_grid
+    
+    def _grid_dataset(self, dataset, label=None):
+        """ Slice the pointcloud dataset to grid cells."""
+        
         xs = self.centres[0,0,:]
         ys = self.centres[1,:,0]
         
         xe = self.x_edges
         ye = self.y_edges
-                
-        which_dataset = {0: 'ALS', 1: 'TLS'}
         
-        # 3D array to store grids of ALS (top layer [0,:,:]) and TLS (bottom layer [0,:,:]) voxel PCs
-        PC_grid = np.empty(self.centres.shape, dtype=object)
+        dataset_grid = np.empty(self.shape, dtype=object)
         
-        # Loop over grid, slicing voxels (takes a min)
         for i, (yc, y1, y2) in enumerate(zip(ys, ye[:-1], ye[1:])):
             for j, (xc, x1, x2) in enumerate(zip(xs, xe[:-1], xe[1:])):
-                # Slice ALS and TLS to voxel
-                for d, PC in enumerate([ALS, TLS]):
-                    PC_slice = PC[{'x': (x1, x2), 'y': (y1, y2)}]
-                    setattr(PC_slice, 'centre', (xc, yc))
-                    setattr(PC_slice, 'label', which_dataset[d])
-                    PC_grid[d, i, j] = PC_slice
-        self.PCs = PC_grid
+                
+                # call method to get a PC from dataset, if necessary
+                PC = dataset
+                
+                PC_slice = PC[{'x': (x1, x2), 'y': (y1, y2)}]
+                
+                setattr(PC_slice, 'centre', (xc, yc))
+                setattr(PC_slice, 'label', label)
+                dataset_grid[i, j] = PC_slice
         
+        return dataset_grid
         
     def find_cell(self, x, y):
         """ Return the [i, j] matrix position of the object centred at the supplied (x, y) coordinates.
