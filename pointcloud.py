@@ -758,44 +758,6 @@ def slice_pointcloud(PC, bounds):
     
     return PC_slice
 
-### Tiles ###
-def extract_tile_bounds(fpaths):
-    """ Determine the bounds for each tile (a .las file) in fpaths.
-    
-    Args:
-        fpaths ::: list of str filepaths of .las files, or
-                :: str path to directory containing .las files
-    Returns:
-        tiles_bounds ::: dict of bounds dicts for each file
-                        i.e. `{fpath: bounds}` where `bounds = {'x': (min, max), ...}`.
-    """
-    
-    # Find all .las files in directory
-    if isinstance(fpaths, str):
-        fpaths = glob(fpaths + '*.las')
-
-    tiles_bounds = {} # to store bounds for each tile
-    # Iterate over all .las files, finding bounds (takes a min)
-    for fname in fpaths:
-        with laspy.file.File(fname) as lp:
-            bounds = dict(zip(('x', 'y', 'z'),
-                          zip(lp.header.min, lp.header.max)))
-            tiles_bounds[fname] = bounds
-    
-    return tiles_bounds
-
-def select_tiles(tiles_bounds, area_bounds):
-    """ Return the subset of tiles which contain data in specified area."""
-    # is any part of (min, max) tuple c1 in range of c2?
-    c_overlap = lambda c1, c2: any([c >= c2[0] and c <= c2[1] for c in c1])
-    # is there overlap of b1 with all of the dimensions in b2?
-    bounds_overlap = lambda b1, b2: all([c_overlap(b1[coord], b2[coord]) for coord in b2.keys()])
-    
-    # Filter dict to fpaths with overlapping area
-    subset = {fpath: bounds for fpath, bounds in tiles_bounds.iteritems()
-              if bounds_overlap(bounds, area_bounds)}
-    return subset
-
 ### Non-PC utilities ###
 
 def find_array_range(*arrays):
