@@ -9,6 +9,9 @@ Designed for use in tree crown modelling of Wytham Forest.
 Note that this file is not a final product, and is regularly altered and updated. 
 """
 
+import tiles
+import vox
+
 import laspy
 from glob import glob
 import numpy as np
@@ -45,7 +48,10 @@ class PointCloud(object):
         
         elif isinstance(input_data, list):
             self._initialise_from_list(input_data)
-            
+        
+        elif isinstance(input_data, tiles.Tiles):
+            self._initialise_from_list(input_data.tiles.keys())
+        
         elif isinstance(input_data, laspy.file.File):
             self._initialise_from_LAS(input_data)
         
