@@ -23,7 +23,15 @@ class Tiles(object):
             raise TypeError, "`files` has to be str directory path or list of file paths"
         
         self.tiles = self._extract_tiles_bounds(fpaths)
+    
+    def __getitem__(self, selection):
+        """ Slice by bounds dict to return matching tiles."""
         
+        tiles = {fpath: bounds for fpath, bounds in self.tiles.iteritems()
+                  if self._bounds_overlap(bounds, selection)}
+        
+        return tiles
+    
     def _extract_tiles_bounds(self, fpaths):
         """ Store the bounds for each tile (a .las file) in fpaths in a dictionary.
 
@@ -46,20 +54,23 @@ class Tiles(object):
         return tiles_bounds
 
     def select_tiles(self, selection_bounds):
-        """ Return the subset of tiles which contain data in specified area.
+        """ Return list of tiles which contain data in specified area.
         
         Args:
             area_bounds ::: dict of (min, max) for 'x' and 'y' specifying area to select
         Returns:
-            tiles ::: dict of {filepaths: bounds} of .las files whose area overlaps with that of area_bounds  
+            fpaths ::: list of .las filepaths whose pointcloud area overlaps with that of area_bounds  
         """
         
-        # is any part of (min, max) tuple c1 in range of c2?
-        c_overlap = lambda c1, c2: any([c >= c2[0] and c <= c2[1] for c in c1])
-        # is there overlap of b1 with all of the dimensions in b2?
-        bounds_overlap = lambda b1, b2: all([c_overlap(b1[coord], b2[coord]) for coord in b2.keys()])
-
         # Filter dict to fpaths with overlapping area
-        tiles = {fpath: bounds for fpath, bounds in self.tiles.iteritems()
-                  if bounds_overlap(bounds, selection_bounds)}
-        return tiles
+        fpaths = [fpath for fpath, bounds in self.tiles.iteritems()
+                  if self._bounds_overlap(bounds, selection_bounds)]
+        return fpaths
+    
+    def _bounds_overlap(self, b1, b2):
+        """ Determine whether bounds dicts b1 and b2 overlap in all dimensions."""
+        return all([self._c_overlap(b1[coord], b2[coord]) for coord in b2.keys()])
+    
+    def _c_overlap(self, c1, c2):
+        """ Determine whether (min, max) coordinate bounds c1 and c2 overlap."""
+        return any([c >= c2[0] and c <= c2[1] for c in c1])
