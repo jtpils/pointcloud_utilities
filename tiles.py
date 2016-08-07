@@ -27,6 +27,7 @@ class Tiles(object):
             raise TypeError, "`files` has to be str directory path or list of file paths"
         
         self.tiles = tiles
+        self._set_bounds()
         ## Find bounds of tiles
     
     def __getitem__(self, selection):
@@ -57,7 +58,19 @@ class Tiles(object):
                 tiles_bounds[fname] = bounds
 
         return tiles_bounds
-
+    
+    def _set_bounds(self):
+        """ Determine and store the bounds of combined area covered by tiles."""
+        
+        allvals = {'x': [], 'y': [], 'z': []} # to store all bounds
+        # Extract each coordinate from bounds of all tiles
+        for tile in self.tiles.itervalues():
+            for c, val in tile.iteritems():
+                allvals[c].extend(val)
+        
+        # Overall minimum and maximum
+        self.bounds = {c: (min(vals), max(vals)) for c, vals in allvals.iteritems()}
+    
     def select_tiles(self, selection_bounds):
         """ Return list of tiles which contain data in specified area.
         
