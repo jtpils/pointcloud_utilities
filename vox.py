@@ -1,9 +1,11 @@
 import pointcloud as pc
+import tiles
 import numpy as np
 from numpy import random
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from scipy.stats import weibull_min
+
 
 class Vox(object):
     """An extendable class used to carry out all histogram comparisons for a given voxel. """
@@ -152,21 +154,39 @@ class Grid(object):
     def _grid_dataset(self, dataset, label=None):
         """ Slice the pointcloud dataset to grid cells."""
         
+        # x and y centres and edges to loop with
         xs = self.centres[0,0,:]
         ys = self.centres[1,:,0]
-        
         xe = self.x_edges
         ye = self.y_edges
         
+        # Activate tileflag if tile passed
+        if isinstance(dataset, tiles.Tiles):
+            tf = True
+            first = True
+            tile = dataset
+        else:
+            tf = False
+            PC = dataset
+            
         dataset_grid = np.empty(self.shape, dtype=object)
-        
         for i, (yc, y1, y2) in enumerate(zip(ys, ye[:-1], ye[1:])):
             for j, (xc, x1, x2) in enumerate(zip(xs, xe[:-1], xe[1:])):
+                bounds = {'x': (x1, x2), 'y': (y1, y2)}
                 
                 # call method to get a PC from dataset, if necessary
-                PC = dataset
-                
-                PC_slice = PC[{'x': (x1, x2), 'y': (y1, y2)}]
+                if tf:
+                    if first: # generate starting tiles and pointcloud
+                        tile = dataset[bounds]
+                        PC = pc.PointCloud(tile)
+                        first = False
+                    else:
+                        newtile = dataset[bounds] # tiles proposed for current cell
+                        if newtile.bounds != tile.bounds: # update PC if new area
+                            tile = newtile
+                            PC = pc.PointCloud(tile)
+                            
+                PC_slice = PC[bounds]
                 
                 setattr(PC_slice, 'centre', (xc, yc))
                 setattr(PC_slice, 'label', label)
