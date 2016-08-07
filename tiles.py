@@ -35,8 +35,8 @@ class Tiles(object):
         
         tiles = {fpath: bounds for fpath, bounds in self.tiles.iteritems()
                   if self._bounds_overlap(bounds, selection)}
-        
-        return Tiles(tiles)
+        if len(tiles):
+            return Tiles(tiles)
     
     def _extract_tiles_bounds(self, fpaths):
         """ Store the bounds for each tile (a .las file) in fpaths in a dictionary.
@@ -91,4 +91,5 @@ class Tiles(object):
     
     def _c_overlap(self, c1, c2):
         """ Determine whether (min, max) coordinate bounds c1 and c2 overlap."""
-        return any([c >= c2[0] and c <= c2[1] for c in c1])
+        return any([not (c1[1] < c2[0]) ^ (c1[0] > c2[1]) for c in c1])
+        # return any([c >= c2[0] and c <= c2[1] for c in c1])
