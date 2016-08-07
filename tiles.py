@@ -15,22 +15,27 @@ class Tiles(object):
             files ::: str directory path or list of str filepaths        
         """
         
-        if isinstance(files, list):
+        if isinstance(files, list): # from list of files
             fpaths = files
-        elif os.path.isdir(files):
+            tiles = self._extract_tiles_bounds(fpaths)
+        elif isinstance(files, dict): # from slicing
+            tiles = files
+        elif os.path.isdir(files): # from directory
             fpaths = glob(files + '*.las')
+            tiles = self._extract_tiles_bounds(fpaths)
         else:
             raise TypeError, "`files` has to be str directory path or list of file paths"
         
-        self.tiles = self._extract_tiles_bounds(fpaths)
+        self.tiles = tiles
+        ## Find bounds of tiles
     
     def __getitem__(self, selection):
-        """ Slice by bounds dict to return matching tiles."""
+        """ Slice by bounds dict to return new object with only matching tiles."""
         
         tiles = {fpath: bounds for fpath, bounds in self.tiles.iteritems()
                   if self._bounds_overlap(bounds, selection)}
         
-        return tiles
+        return Tiles(tiles)
     
     def _extract_tiles_bounds(self, fpaths):
         """ Store the bounds for each tile (a .las file) in fpaths in a dictionary.
