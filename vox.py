@@ -80,11 +80,13 @@ class Grid(object):
         Key attributes:
             centres ::: 3D array containing x (at [0,:,:]) and y ([1,:,:]) coordinate components of grid cell centre
             """
-    def __init__(self, plot_bounds, grid_size):
+    def __init__(self, plot_bounds, grid_size, pointclouds=None):
         
         self._plot_bounds = plot_bounds
         self._input_grid_size = grid_size # input is not always real resolution
         self._set_up_xy(plot_bounds, grid_size)
+        if pointclouds:
+            self._initialise_with_pointclouds(pointclouds)
         
     def _set_up_xy(self, plot_bounds, grid_size):
         """ Set up an evenly spaced grid over plot area with grid spacing as close as possible to grid_size."""
@@ -111,8 +113,54 @@ class Grid(object):
         xy_grid = np.concatenate([xs[np.newaxis,:,:], ys[np.newaxis,:,:]])
         
         # Store grid and resolution
+        self.centres = xy_grid
         self.grid_size = (res_x, res_y)
-        self.centres = xy_grid  
+        
+        # Store edges (should ideally be a single array)
+        self.x_edges = x_edges
+        self.y_edges = y_edges
+    
+    def _initialise_with_pointclouds(self, pointclouds):
+        """Initialise with ALS and TLS PointClouds in grid cells.
+        
+        Args:
+            pointclouds ::: tuple of (ALS, TLS) PointCloud objects to grid
+        """
+        ## Note that this function should be able to accept lists from pointclouds, and use them to read data directly from tiles 
+        
+        # Grid pointclouds
+        self._grid_pointclouds(*pointclouds)
+        
+        ## Other PointCloud related setups
+        
+        
+    def _grid_pointclouds(self, ALS, TLS):
+        """Slice the provided ALS and TLS PointClouds into smaller voxels in grid
+        
+        Very slow, and could be sped up by reading directly from file/tiles rather than larger PointCloud.
+        ."""
+        xs = self.centres[0,0,:]
+        ys = self.centres[1,:,0]
+        
+        xe = self.x_edges
+        ye = self.y_edges
+                
+        which_dataset = {0: 'ALS', 1: 'TLS'}
+        
+        # 3D array to store grids of ALS (top layer [0,:,:]) and TLS (bottom layer [0,:,:]) voxel PCs
+        PC_grid = np.empty(self.centres.shape, dtype=object)
+        
+        # Loop over grid, slicing voxels (takes a min)
+        for i, (yc, y1, y2) in enumerate(zip(ys, ye[:-1], ye[1:])):
+            for j, (xc, x1, x2) in enumerate(zip(xs, xe[:-1], xe[1:])):
+                # Slice ALS and TLS to voxel
+                for d, PC in enumerate([ALS, TLS]):
+                    PC_slice = PC[{'x': (x1, x2), 'y': (y1, y2)}]
+                    setattr(PC_slice, 'centre', (xc, yc))
+                    setattr(PC_slice, 'label', which_dataset[d])
+                    PC_grid[d, i, j] = PC_slice
+        self.PCs = PC_grid
+        
         
     def find_cell(self, x, y):
         """ Return the [i, j] matrix position of the object centred at the supplied (x, y) coordinates.
