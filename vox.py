@@ -15,13 +15,13 @@ class Grid(object):
         Key attributes:
             centres ::: 3D array containing x (at [0,:,:]) and y ([1,:,:]) coordinate components of grid cell centre
             """
-    def __init__(self, plot_bounds, grid_size, pointclouds=None):
+    def __init__(self, plot_bounds, grid_size, pointclouds=None, cutoff=None):
         
         self._plot_bounds = plot_bounds
         self._input_grid_size = grid_size # input is not always real resolution
         self._set_up_xy(plot_bounds, grid_size)
         if pointclouds:
-            self._initialise_with_pointclouds(pointclouds)
+            self._initialise_with_pointclouds(pointclouds, cutoff)
         
     def _set_up_xy(self, plot_bounds, grid_size):
         """ Set up an evenly spaced grid over plot area with grid spacing as close as possible to grid_size."""
@@ -56,7 +56,7 @@ class Grid(object):
         self.x_edges = x_edges
         self.y_edges = y_edges
     
-    def _initialise_with_pointclouds(self, pointclouds):
+    def _initialise_with_pointclouds(self, pointclouds, cutoff):
         """Initialise with ALS and TLS PointClouds in grid cells.
         
         Args:
@@ -68,7 +68,10 @@ class Grid(object):
         self._grid_pointclouds(*pointclouds)
         
         ## Other PointCloud related setups
-        self._grid_npoints() 
+        self._grid_npoints()
+        
+        if cutoff:
+            self.voxs = self._grid_Voxs(cutoff)
         
     def _grid_pointclouds(self, ALS, TLS):
         """Slice the provided ALS and TLS PointClouds into smaller voxels in grid
@@ -134,6 +137,14 @@ class Grid(object):
         npoints_grid = get_npoints(self.PCs)
         self.npoints = npoints_grid
 
+    def _grid_Voxs(self, cutoff):
+        """ Return a 2D grid of Vox objects initialised with the specified cutoff."""
+        
+        make_Voxs = np.vectorize(lambda ALS, TLS, cutoff : Vox(ALS, TLS, cutoff))
+        voxs = make_Voxs(*self.PCs, cutoff=cutoff)
+        
+        return voxs
+    
     def find_cell(self, x, y):
         """ Return the [i, j] matrix position of the object centred at the supplied (x, y) coordinates.
         Only works for exact matches (otherwise None)
