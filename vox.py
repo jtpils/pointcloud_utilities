@@ -256,4 +256,11 @@ class Vox(object):
         weights = probs/probs.sum() # normalise probabilites (sum to 1)
         ix_keep = random.choice(ix, round(n), replace=False, p=weights) # draw points according to pdf
         
-        return ix_keep 
+        return ix_keep
+    
+    
+""" Helper functions """
+
+def edges_to_centres(bin_edges):
+    """ Return a len n-1 central values of a len n array of bin edges."""
+    return bin_edges[:-1] + (bin_edges[1:] - bin_edges[:-1])/2.
