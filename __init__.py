@@ -1,3 +1,3 @@
 import pointcloud
-import vox
+import voxel
 import tiles

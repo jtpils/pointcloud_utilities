@@ -10,7 +10,7 @@ Note that this file is not a final product, and is regularly altered and updated
 """
 
 import tiles
-import vox
+import voxel
 
 import laspy
 from glob import glob
