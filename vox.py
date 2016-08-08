@@ -118,7 +118,7 @@ class Grid(object):
         self.centres = xy_grid
         self.shape = (n_y, n_x)
         self.grid_size = (res_x, res_y)
-        
+        self.xy_area = xy_area 
         # Store edges (should ideally be a single array)
         self.x_edges = x_edges
         self.y_edges = y_edges
@@ -135,7 +135,7 @@ class Grid(object):
         self._grid_pointclouds(*pointclouds)
         
         ## Other PointCloud related setups
-        
+        self._grid_npoints() 
         
     def _grid_pointclouds(self, ALS, TLS):
         """Slice the provided ALS and TLS PointClouds into smaller voxels in grid
@@ -193,7 +193,14 @@ class Grid(object):
                 dataset_grid[i, j] = PC_slice
         
         return dataset_grid
-        
+    
+    def grid_npoints(self):
+        """ Return a 3D grid of npoints in each voxel """
+        # Vectorised function to retreive n_points
+        get_npoints = np.vectorize(lambda PC: getattr(PC, 'n_points'))
+        npoints_grid = get_npoints(self.PCs)
+        self.npoints = npoints_grid
+
     def find_cell(self, x, y):
         """ Return the [i, j] matrix position of the object centred at the supplied (x, y) coordinates.
         Only works for exact matches (otherwise None)
