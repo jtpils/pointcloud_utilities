@@ -225,15 +225,19 @@ class Vox(object):
         self.ix_hng_ALS = self.ix_ALS[~self.class_ALS]
         self.ix_hng_TLS = self.ix_TLS[~self.class_TLS]
         
-    def pick_from_TLS(self, n, which, pdf):
+    def pick(self, n, which, pdf):
         """ Randomly pick `n` TLS points from either 'nearground', 'canopy' or 'all` according to 'pdf'.
         Args:
             n ::: number of points to pick, will be rounded
             which ::: TLS subset choice, either of 'z' ('all'), 'hng' ('nearground') or 'tdc' ('canopy')
-            pdf ::: any function which determines f(x) for the array of values specified by `which`
+            pdf ::: any 1-arg function which determines f(x) for the array of values specified by `which`
         
         Returns:
             ix_keep ::: array the indices of chosen points
+        
+        Usage:
+            >>> vox.pick_from_TLS(6, 'tdc', lambda x: 0.5*x^2+21)
+            array([34244,  7769, 36894, 35147, 12372,  7328])
         """
         
         which_dataset = {'z': self.z_TLS, 'hng': self.hng_TLS, 'tdc': self.tdc_TLS,
@@ -252,4 +256,4 @@ class Vox(object):
         weights = probs/probs.sum() # normalise probabilites (sum to 1)
         ix_keep = random.choice(ix, round(n), replace=False, p=weights) # draw points according to pdf
         
-        return ix_keep        
+        return ix_keep 
