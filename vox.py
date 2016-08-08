@@ -224,3 +224,32 @@ class Vox(object):
         
         self.ix_hng_ALS = self.ix_ALS[~self.class_ALS]
         self.ix_hng_TLS = self.ix_TLS[~self.class_TLS]
+        
+    def pick_from_TLS(self, n, which, pdf):
+        """ Randomly pick `n` TLS points from either 'nearground', 'canopy' or 'all` according to 'pdf'.
+        Args:
+            n ::: number of points to pick, will be rounded
+            which ::: TLS subset choice, either of 'z' ('all'), 'hng' ('nearground') or 'tdc' ('canopy')
+            pdf ::: any function which determines f(x) for the array of values specified by `which`
+        
+        Returns:
+            ix_keep ::: array the indices of chosen points
+        """
+        
+        which_dataset = {'z': self.z_TLS, 'hng': self.hng_TLS, 'tdc': self.tdc_TLS,
+                        'all': self.z_TLS, 'nearground': self.hng_TLS, 'canopy': self.tdc_TLS}
+        which_ix = {'z': self.ix_TLS, 'hng': self.ix_hng_TLS, 'tdc': self.ix_tdc_TLS,
+                        'all': self.ix_TLS, 'nearground': self.ix_hng_TLS, 'canopy': self.ix_tdc_TLS}
+        
+        try:
+            zs = which_dataset[which]
+            ix = which_ix[which]
+        except KeyError:
+            print "`which` must be either of %s"%(which_dataset.keys())
+            raise
+        
+        probs = pdf(zs) # find probability of keeping any given point
+        weights = probs/probs.sum() # normalise probabilites (sum to 1)
+        ix_keep = random.choice(ix, round(n), replace=False, p=weights) # draw points according to pdf
+        
+        return ix_keep        
