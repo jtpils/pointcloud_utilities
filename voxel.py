@@ -251,8 +251,12 @@ class Vox(object):
         except KeyError:
             print "`which` must be either of %s"%(which_dataset.keys())
             raise
-        
+              
         probs = pdf(zs) # find probability of keeping any given point
+        
+        # Remove nans and infs
+        probs[~np.isfinite(probs)] = 0.
+        
         weights = probs/probs.sum() # normalise probabilites (sum to 1)
         ix_keep = random.choice(ix, round(n), replace=False, p=weights) # draw points according to pdf
         
