@@ -116,13 +116,29 @@ class PointCloud(object):
         filetype = fname.split(".")[-1].lower() # reduce to lower case
 
         # Call correct initialisation method
-        if filetype == "las": # Initialise .las via laspy
+        if filetype == 'las': # Initialise .las via laspy
             self._initialise_from_LAS(laspy.file.File(fname))
-        elif filetype == "pcd":
+        elif filetype == 'txt': # Directly read .txt files
+            self._initialise_from_txt(fname)
+        elif filetype == 'pcd':
             print "I can't read .%s files yet" %(filetype)
         else:
             print ".%s files unrecognised"%(filetype)
             
+    def _initialise_from_txt(self, fname):
+        """ Initialise from a plain text file (1 point per line, x,y and z seperated by single space."""
+        
+        # Read lines to list of lines
+        with open(fname) as o:
+            lines = o.read().splitlines()
+        
+        # Initialise from 3*n array
+        xyz = np.array([line.split(' ') for line in lines], dtype=float).T
+        self._initialise_from_xyz_array(xyz)
+        
+        self.fname = fname.split('/')[-1]
+        
+        
     def _initialise_from_list(self, fnames):
         """ Initialise PointCloud object from multiple files."""
 
