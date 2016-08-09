@@ -258,9 +258,9 @@ class Vox(object):
         probs[~np.isfinite(probs)] = 0.
         
         weights = probs/probs.sum() # normalise probabilites (sum to 1)
-        ix_keep = random.choice(ix, round(n), replace=False, p=weights) # draw points according to pdf
+        ix_picks = random.choice(ix, round(n), replace=False, p=weights) # draw points according to pdf
         
-        return ix_keep
+        return ix_picks
     
     
 """ Helper functions """
