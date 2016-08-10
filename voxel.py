@@ -261,10 +261,3 @@ class Vox(object):
         ix_picks = random.choice(ix, round(n), replace=False, p=weights) # draw points according to pdf
         
         return ix_picks
-    
-    
-""" Helper functions """
-
-def edges_to_centres(bin_edges):
-    """ Return a len n-1 central values of a len n array of bin edges."""
-    return bin_edges[:-1] + (bin_edges[1:] - bin_edges[:-1])/2.

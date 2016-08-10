@@ -120,13 +120,12 @@ class WeibCDF(Model): # make a base Weib class, then subclass for WeibCDF, WeibP
 
     def see_weibull_fit(self):
         """Plot the pdf histograms and cdf curves of ALS/TLS, data and fitted pdf ratios, and estimated ALS pdf."""
-        raise NotImplementedError, 'Need to be able to show fitted pars and, if self.adjusted, adjusted pars'
         
-        if getattr(self.adjusted, None):
-            adj = True
-            adj_pdf = self.model(**self.pars).pdf
+        # Get fitted pdf and CDF ratio
+        fit_pdf = self.model(**self.fitted_pars).pdf
+        fit_ratio = fit_pdf(self.bins)
         
-        fig, axarr = plt.subplots(nrows=2, ncols=3, sharex=True, figsize=(12, 8))
+        fig, axarr = plt.subplots(nrows=2, ncols=3, sharex=True, figsize=(14, 10))
 
         ## Density histograms
         axarr[0, 0].bar(self.bins, self.pdf_A, width=self.bin_width, color='red')
@@ -143,25 +142,46 @@ class WeibCDF(Model): # make a base Weib class, then subclass for WeibCDF, WeibP
         axarr[1, 0].set_xlabel('Distance from canopy top (m)')
 
         # CDF ratio
-        axarr[0, 1].plot(self.bins, self.ratio, color='purple')
+        axarr[0, 1].plot(self.bins, self.ratio, color='black')
         axarr[0, 1].set_title('Data CDF ratio')
 
         # Fitted CDF ratio
         axarr[1, 1].plot(self.bins, self.fitted_ratio, ls='--', color='purple')
-        axarr[1, 1].text(0.65, 0.7, "$k$: %.3f\n$\\theta$: %.3f\n$\lambda$: %.3f"%(c, loc, scale),
-                         transform=axarr[1, 1].transAxes, size=14)
+        axarr[1, 1].text(0.65, 0.75, "Fitted\n$k$: %.3f\n$\\theta$: %.3f\n$\lambda$: %.3f"%(
+                self.fitted_pars['c'], self.fitted_pars['loc'], self.fitted_pars['scale']),
+                transform=axarr[1, 1].transAxes, size=14, color='purple')
         axarr[1, 1].set_title('Fitted CDF ratio')
         axarr[1, 1].set_xlabel('Distance from canopy top (m)')
 
         # ALS pdf (i.e. density histogram, in line form)
-        axarr[0, 2].plot(self.bins, self.pdf_A, c='r')
+        axarr[0, 2].plot(self.bins, self.pdf_A, color='red')
         axarr[0, 2].set_title('Estimated ALS PDF')
 
         # Simulated ALS pdf
-        axarr[1, 2].plot(self.bins, self.pdf_T * self.fitted_ratio, c='r', ls='--')
+        axarr[1, 2].plot(self.bins, self.pdf_T * fit_ratio, color='purple', ls='--', label='fitted')
         axarr[1, 2].set_title('Fitted ALS PDF') # i.e. approximate result of pdf(z) for all TLS points 
         axarr[1, 2].set_xlabel('Distance from canopy top (m)')
 
+        # Add adjusted curves
+        if getattr(self, 'adjustments', None): # if adjustments have been made
+            # Get adjusted pdf and ratio
+            adj_pdf = self.pdf
+            adj_ratio = adj_pdf(self.bins)
+            
+            # Adjusted CDF ratio
+            axarr[1, 1].plot(self.bins, adj_ratio, ls='--', color='orange')
+            axarr[1, 1].text(0.65, 0.5, "Adjusted\n$k$: %.3f\n$\\theta$: %.3f\n$\lambda$: %.3f"%(
+                self.pars['c'], self.pars['loc'], self.pars['scale']),
+                transform=axarr[1, 1].transAxes, size=14, color='orange')
+            axarr[1, 1].set_title('Fitted and Adjusted CDF ratio')
+        
+            # Adjusted Simulated ALS pdf
+            axarr[1, 2].plot(self.bins, self.pdf_T * adj_ratio, color='orange', ls='--', label='adjusted')
+            axarr[1, 2].set_title('Fitted ALS PDF') # i.e. approximate result of pdf(z) for all TLS points 
+            axarr[1, 2].set_xlabel('Distance from canopy top (m)')
+
+            
+        axarr[1, 2].legend(loc='best')
         fig.suptitle("centre: %s, bin width: %s"%(self.centre, self.bin_width))
         
         
