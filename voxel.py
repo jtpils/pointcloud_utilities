@@ -5,7 +5,7 @@ from numpy import random
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from scipy.stats import weibull_min
-
+from warnings import warn
 
 class Grid(object):
     """ A container for various objects conforming to a regular 2D grid of even size covering entire plot area:
@@ -22,6 +22,10 @@ class Grid(object):
         self._set_up_xy(plot_bounds, grid_size)
         if pointclouds:
             self._initialise_with_pointclouds(pointclouds, cutoff)
+        
+        # Empty dicts to store models and simulated PointClouds
+        self.models = {}
+        self.SIM = {}
         
     def _set_up_xy(self, plot_bounds, grid_size):
         """ Set up an evenly spaced grid over plot area with grid spacing as close as possible to grid_size."""
