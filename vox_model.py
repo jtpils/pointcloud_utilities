@@ -3,7 +3,7 @@ import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 
-class Model(object):
+class Mod(object):
     """ Base class for models, which interact with Voxel objects.
         All derived classes should:
             > Be initialised with a voxel.Voxel instance
@@ -41,7 +41,7 @@ class Model(object):
         self.pdf = self.model(**self.pars).pdf
 
 
-class WeibCDF(Model): # make a base Weib class, then subclass for WeibCDF, WeibPDF, WeibKern etc
+class WeibCDF(Mod): # make a base Weib class, then subclass for WeibCDF, WeibPDF, WeibKern etc
     """ A model of ALS density from TLS using the Weibull function."""
     
     def __init__(self, vox, bin_width=1., c_guess=0.62):
