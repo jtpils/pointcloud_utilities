@@ -149,6 +149,32 @@ class Grid(object):
         
         return voxs
     
+    def fit_models(self, mod, mod_pars, label=None):
+        """ Create a new grid of the specified Model fitted to each voxel.
+
+        Args:
+            mod ::: vox_model.Model model to fit
+            mod_pars ::: dict parameters used to initialise mod
+            label ::: str label for model used as dict key (default: mod.__name__)
+
+        Assigns:
+            2D array of models to self.models[label]
+        """
+
+        # Vectorised fitting function
+        fit_mods = np.vectorize(lambda vox, mod, mod_pars: mod(vox, **mod_pars))
+
+        # Carry out fitting on each voxel
+        models = fit_mods(self.voxs, mod, mod_pars)
+
+        # Store model
+        if not label: # use generic model name if not specified
+            label = mod.__name__
+            if self.models.get(label): # warn if name not novel
+                warn("There were already models at `%s`, they will be overwritten"%name)
+        
+        self.models[label] = models
+
     def find_cell(self, x, y):
         """ Return the [i, j] matrix position of the object centred at the supplied (x, y) coordinates.
         Only works for exact matches (otherwise None)
