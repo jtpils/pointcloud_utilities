@@ -224,7 +224,35 @@ class Vox(object):
         
         self.ix_hng_ALS = self.ix_ALS[~self.class_ALS]
         self.ix_hng_TLS = self.ix_TLS[~self.class_TLS]
-        
+    
+    def simulate_pointcloud(self, n, subset, model=None):
+        """ Apply vox model to select n TLS points and return simulated PointCloud.
+
+        Args:
+            n ::: number of points to pick (will be rounded)
+            which ::: str name of subset of PointCloud to pick
+            model ::: a model (vox_model.Model, etc) object
+        Returns:
+            PC_sim ::: PointCloud containing selected Points
+        """
+        # Initialise simulation
+        n = int(round(n)) # can only use whole points
+        # 
+        if not model:
+            try: # see if there is a model attatched
+                model = vox.model
+            except AttributeError:
+                raise NoModelError, 'You need to pass an initialised model, or assign one to `vox.model`'
+
+        # Pick points
+        ix_picks = self.pick(n, subset, model.pdf)
+        PC_sim = self.PC_TLS[ix_picks]
+
+        sim_details = {'model': type(model).__name__, 'pars': model.pars}
+        setattr(PC_sim, 'sim_details', sim_details)
+    
+        return PC_sim
+    
     def pick(self, n, which, pdf):
         """ Randomly pick `n` TLS points from either 'nearground', 'canopy' or 'all` according to 'pdf'.
         Args:
@@ -261,3 +289,6 @@ class Vox(object):
         ix_picks = random.choice(ix, round(n), replace=False, p=weights) # draw points according to pdf
         
         return ix_picks
+    
+class NoModelError(TypeError):
+    """ When no valid model has been passed."""
