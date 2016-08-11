@@ -224,8 +224,8 @@ class Vox(object):
         self.z_TLS = TLS.z
         
         # Index TLS points
-        self.ix_ALS = np.arange(len(self.z_ALS))
-        self.ix_TLS = np.arange(len(self.z_TLS))
+        self.ix_z_ALS = np.arange(len(self.z_ALS))
+        self.ix_z_TLS = np.arange(len(self.z_TLS))
         
         # Find ground and canopy top of voxel       
         self.lowest = np.min(np.concatenate([self.z_ALS, self.z_TLS]))
@@ -256,16 +256,16 @@ class Vox(object):
         self.tdc_ALS = self.highest - self.z_ALS[self.class_ALS]
         self.tdc_TLS = self.highest - self.z_TLS[self.class_TLS]
        
-        self.ix_tdc_ALS = self.ix_ALS[self.class_ALS]
-        self.ix_tdc_TLS = self.ix_TLS[self.class_TLS]
+        self.ix_tdc_ALS = self.ix_z_ALS[self.class_ALS]
+        self.ix_tdc_TLS = self.ix_z_TLS[self.class_TLS]
     
     def _set_nearground_heights(self):
         """ Set the heights from ground of nearground points, and associated indices"""
         self.hng_ALS = self.z_ALS[~self.class_ALS] - self.lowest
         self.hng_TLS = self.z_TLS[~self.class_TLS] - self.lowest
         
-        self.ix_hng_ALS = self.ix_ALS[~self.class_ALS]
-        self.ix_hng_TLS = self.ix_TLS[~self.class_TLS]
+        self.ix_hng_ALS = self.ix_z_ALS[~self.class_ALS]
+        self.ix_hng_TLS = self.ix_z_TLS[~self.class_TLS]
     
     def simulate_pointcloud(self, n, subset, model=None):
         """ Apply vox model to select n TLS points and return simulated PointCloud.
@@ -273,7 +273,7 @@ class Vox(object):
         Args:
             n ::: number of points to pick (will be rounded)
             which ::: str name of subset of PointCloud to pick
-            model ::: a model (vox_model.Model, etc) object
+            model ::: a initialised instance of a model (vox_model.Model, etc) containing a `pdf` attribute
         Returns:
             PC_sim ::: PointCloud containing selected Points
         """
@@ -312,8 +312,8 @@ class Vox(object):
         
         which_dataset = {'z': self.z_TLS, 'hng': self.hng_TLS, 'tdc': self.tdc_TLS,
                         'all': self.z_TLS, 'nearground': self.hng_TLS, 'canopy': self.tdc_TLS}
-        which_ix = {'z': self.ix_TLS, 'hng': self.ix_hng_TLS, 'tdc': self.ix_tdc_TLS,
-                        'all': self.ix_TLS, 'nearground': self.ix_hng_TLS, 'canopy': self.ix_tdc_TLS}
+        which_ix = {'z': self.ix_z_TLS, 'hng': self.ix_hng_TLS, 'tdc': self.ix_tdc_TLS,
+                        'all': self.ix_z_TLS, 'nearground': self.ix_hng_TLS, 'canopy': self.ix_tdc_TLS}
         
         try:
             zs = which_dataset[which]
