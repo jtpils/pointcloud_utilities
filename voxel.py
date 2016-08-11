@@ -266,6 +266,29 @@ class Vox(object):
         
         self.ix_hng_ALS = self.ix_z_ALS[~self.class_ALS]
         self.ix_hng_TLS = self.ix_z_TLS[~self.class_TLS]
+
+    def get_array(self, dataset, subset, ix=False):
+        """Return vox attribute specified by args
+        
+        Args:
+            dataset ::: 'ALS' or 'TLS'
+            subset ::: 'all', 'tdc', 'hng'
+            ix ::: bool `True` for indices instead of 
+        Returns:
+            array of the requested attribute
+        Usage:
+            >>> get_array('TLS', 'canopy', ix=True) # get indices of top-down TLS canopy heights
+        """
+        # Use ix prefix, if requested
+        ix = 'ix_' if ix else ''
+        # Mappings for subset labels
+        subset_map = {'all': 'z',  'z': 'z', 'tdc': 'tdc', 'canopy': 'tdc', 'hng': 'hng', 'nearground': 'hng'} 
+        sub = subset_map[subset]+'_'
+        
+        # Construct attribute name
+        attr_name = ix + sub + dataset
+        
+        return getattr(self, attr_name)
     
     def simulate_pointcloud(self, n, subset, model=None):
         """ Apply vox model to select n TLS points and return simulated PointCloud.
@@ -309,7 +332,7 @@ class Vox(object):
             >>> vox.pick_from_TLS(6, 'tdc', lambda x: 0.5*x^2+21)
             array([34244,  7769, 36894, 35147, 12372,  7328])
         """
-        
+
         which_dataset = {'z': self.z_TLS, 'hng': self.hng_TLS, 'tdc': self.tdc_TLS,
                         'all': self.z_TLS, 'nearground': self.hng_TLS, 'canopy': self.tdc_TLS}
         which_ix = {'z': self.ix_z_TLS, 'hng': self.ix_hng_TLS, 'tdc': self.ix_tdc_TLS,
