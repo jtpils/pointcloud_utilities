@@ -186,7 +186,51 @@ class Grid(object):
         # Adjust models
         adjust = np.vectorize(lambda mod, adjustments: mod.adjust_pars(adjustments))
         adjust(models, adjustments)
+
+    def simulate_ALS(self, setup):
+        """ Simulate the ALS dataset.
+        Args:
+            setup ::: dict of {'subset': ('label', n_points)}, where
+                   :: subset :: valid subset of ALS (e.g. 'tdc'), optionally used to determine npoints
+                   :: label :: key of self.models to use
+                   :: npoints :: number of points to simulate
+                        can be scalar or array of numeric, or 1-param function to apply to npoints of ALS subset
+        Returns:
+            dict {subset: PC_grid} grid of simulated PointCloud objects for each subset
+        """
     
+        simulate = np.vectorize(lambda vox, n, subset, model: vox.simulate_pointcloud(n, subset, model))
+        sims = {}
+        
+        # Simulate data for each subset according to setup
+        for subset, (label, npoints) in setup.iteritems():
+            models = self.models[label]
+            n = self._process_npoints(npoints, subset)
+            sims[subset] = simulate(self.voxs, n, subset, models)
+        
+        return sims
+
+    def _process_npoints(self, npoints, subset):
+        """
+        Args:
+            npoints ::: either of:
+                     :: numeric scalar or array, which will simply be returned unaltered
+                     :: a 1-parameter function of the number of points in the specified subset of ALS
+        Returns:
+            n ::: npoints, or array of npoints function evaluated over the specified subset of ALS
+        """
+        try: # test if input is a simple scalar or array of numeric
+            n = np.round(npoints)
+        except AttributeError: #  assume npoints to be a function
+            # Get the number of points in the chosen subset
+            get_vox_npoints = np.vectorize(lambda vox, subset: len(vox.get_array('ALS', subset)))
+            vox_npoints = get_vox_npoints(self.voxs, subset)
+            
+            # Apply function
+            npoints_func = np.vectorize(npoints)
+            n = npoints_func(vox_npoints)
+        return n
+
     def find_cell(self, x, y):
         """ Return the [i, j] matrix position of the object centred at the supplied (x, y) coordinates.
         Only works for exact matches (otherwise None)
