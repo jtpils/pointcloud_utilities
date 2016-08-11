@@ -318,11 +318,11 @@ class Vox(object):
     
         return PC_sim
     
-    def pick(self, n, which, pdf):
+    def pick(self, n, subset, pdf):
         """ Randomly pick `n` TLS points from either 'nearground', 'canopy' or 'all` according to 'pdf'.
         Args:
             n ::: number of points to pick, will be rounded
-            which ::: TLS subset choice, either of 'z' ('all'), 'hng' ('nearground') or 'tdc' ('canopy')
+            subset ::: TLS subset choice, either of 'z' ('all'), 'hng' ('nearground') or 'tdc' ('canopy')
             pdf ::: any 1-arg function which determines f(x) for the array of values specified by `which`
         
         Returns:
@@ -332,25 +332,15 @@ class Vox(object):
             >>> vox.pick_from_TLS(6, 'tdc', lambda x: 0.5*x^2+21)
             array([34244,  7769, 36894, 35147, 12372,  7328])
         """
-
-        which_dataset = {'z': self.z_TLS, 'hng': self.hng_TLS, 'tdc': self.tdc_TLS,
-                        'all': self.z_TLS, 'nearground': self.hng_TLS, 'canopy': self.tdc_TLS}
-        which_ix = {'z': self.ix_z_TLS, 'hng': self.ix_hng_TLS, 'tdc': self.ix_tdc_TLS,
-                        'all': self.ix_z_TLS, 'nearground': self.ix_hng_TLS, 'canopy': self.ix_tdc_TLS}
         
-        try:
-            zs = which_dataset[which]
-            ix = which_ix[which]
-        except KeyError:
-            print "`which` must be either of %s"%(which_dataset.keys())
-            raise
-              
+        # Retrieve data        
+        zs = self.get_array('TLS', subset, False) # points to pick from
+        ix = self.get_array('TLS', subset, True) # their indices
+                      
         probs = pdf(zs) # find probability of keeping any given point
-        
-        # Remove nans and infs
-        probs[~np.isfinite(probs)] = 0.
-        
+        probs[~np.isfinite(probs)] = 0. # remove nans and infs
         weights = probs/probs.sum() # normalise probabilites (sum to 1)
+
         ix_picks = random.choice(ix, round(n), replace=False, p=weights) # draw points according to pdf
         
         return ix_picks
