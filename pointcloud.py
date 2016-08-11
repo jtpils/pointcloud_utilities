@@ -223,16 +223,18 @@ class PointCloud(object):
     def __getitem__(self, key):
         """ Slice by bounds dict, or apply any valid numpy slice to individual coordinates to generate new sliced PointCloud. """
         
-        if isinstance(key, dict): # bounds dict slicing
-            PC = self.slice(key)
-        else: # np array slicing
-            xs = self.x[key]
-            ys = self.y[key]
-            zs = self.z[key]
+        if np.any(key):
+            if isinstance(key, dict): # bounds dict slicing
+                PC = self.slice(key)
+            else: # np array slicing
+                xs = self.x[key]
+                ys = self.y[key]
+                zs = self.z[key]
 
-            xyz = np.vstack([xs, ys, zs])
-            PC = PointCloud(xyz)
-        
+                xyz = np.vstack([xs, ys, zs])
+                PC = PointCloud(xyz)
+        else: # handle empty keys
+            PC = PointCloud(None)
         return PC
 
     """ Getting methods """

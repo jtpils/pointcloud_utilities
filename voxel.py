@@ -340,9 +340,12 @@ class Vox(object):
         probs = pdf(zs) # find probability of keeping any given point
         probs[~np.isfinite(probs)] = 0. # remove nans and infs
         weights = probs/probs.sum() # normalise probabilites (sum to 1)
-
-        ix_picks = random.choice(ix, round(n), replace=False, p=weights) # draw points according to pdf
-        
+         
+        try:
+            ix_picks = random.choice(ix, round(n), replace=False, p=weights) # draw points according to pdf
+        except ValueError:
+            ix_picks = None
+            warn('Picking failed %s'%(self.centre,))
         return ix_picks
     
 class NoModelError(TypeError):
