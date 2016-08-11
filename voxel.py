@@ -174,7 +174,19 @@ class Grid(object):
                 warn("There were already models at `%s`, they will be overwritten"%name)
         
         self.models[label] = models
-
+    
+    def adjust_models(self, label, adjustments):
+        """ Apply adjustments to model parameters.
+        Args:
+            label ::: str key of models in in grid.models
+            adjustments ::: dict of adjustment functions to apply to model parameters {'par': func}
+        """
+        # Retrieve models
+        models = self.models[label]
+        # Adjust models
+        adjust = np.vectorize(lambda mod, adjustments: mod.adjust_pars(adjustments))
+        adjust(models, adjustments)
+    
     def find_cell(self, x, y):
         """ Return the [i, j] matrix position of the object centred at the supplied (x, y) coordinates.
         Only works for exact matches (otherwise None)
