@@ -1,10 +1,10 @@
 import pointcloud as pc
 import tiles
+import vox_model
 import numpy as np
 from numpy import random
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
-from scipy.stats import weibull_min
 from warnings import warn
 
 class Grid(object):
@@ -392,5 +392,53 @@ class Vox(object):
             warn('Picking failed %s'%(self.centre,))
         return ix_picks
     
+""" Exceptions. """
 class NoModelError(TypeError):
     """ When no valid model has been passed."""
+
+""" Plotting functions."""
+def see_vertical_distribution(vox, subset='all', bin_width=1.):
+    """ Plot vox PointClouds and associated joint histogram.
+    Args:
+        vox ::: a vox instance
+        subset ::: subset of data to plot ('all', 'tdc', 'hng')
+        bin_width ::: vertical resolution of histogram
+    """
+    fig, axarr = plt.subplots(ncols=4, sharey=True, figsize=(10, 6))
+    plot_pars = {'ALS': ('red', 5), 'TLS': ('blue', 0.1)}
+    zs = {}
+
+    for ax, x_axis in zip(axarr[:2], 'xy'):
+        ax.set_aspect("equal")  # fix x and y scales in proportion
+
+        # Plot PointClouds
+        for i, dataset in enumerate(('TLS', 'ALS')):
+            c, s, = plot_pars[dataset]        
+
+            # Specify PointCloud to get coordinates
+            PC = getattr(vox, 'PC_'+dataset)
+
+            ix = vox.get_array(dataset, subset, True) # indices
+            xs =  getattr(PC, x_axis)[ix]
+            ys =  getattr(PC, 'z')[ix]
+
+            zs[dataset] = ys # store zs for histogramming
+
+            ax.scatter(xs, ys,
+                       s=s, c=c, edgecolors='none')
+            ax.set_xlabel(x_axis)
+
+        axarr[0].set_ylabel('z (m)')
+
+    # Make histograms
+    bin_edges, hists = pc.histogram(zs['TLS'], zs['ALS'],
+                                             bin_width=bin_width, density=True)
+    bins = vox_model.edges_to_centres(bin_edges) # bin centres
+
+    # Plot histogram
+    for i, (dataset, ax) in enumerate(zip(('TLS', 'ALS'), axarr[2:])):
+        ax.barh(bins, hists[i], linewidth=0, color=plot_pars[dataset][0], align='center')
+        ax.set_title(dataset)
+        ax.set_xlabel('Density')
+
+    fig.suptitle(vox.centre)
