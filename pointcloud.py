@@ -500,7 +500,15 @@ class PointCloud(object):
         bounds = make_slice_bounds_from_fracs(self.bounds, frac_bounds)
         
         return self.slice(bounds)
-
+    
+    def export(self, fpath):
+        """Export the PointCloud points as plain text (i.e. xyz file)
+        Args:
+            fpath ::: str filepath to create/overwrite
+        """
+        xyz = self.return_xyz().T # make npoints * 3 array
+        np.savetxt(fpath, xyz) # output as plain text
+        
 """ Functions and utilities """
 
 def describe_summary(summary):
