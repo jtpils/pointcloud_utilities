@@ -357,7 +357,7 @@ class Vox(object):
         ix_picks = self.pick(n, subset, model.pdf)
         PC_sim = self.PC_TLS[ix_picks]
 
-        sim_details = {'model': type(model).__name__, 'pars': model.pars}
+        sim_details = {'model': type(model).__name__, 'pars': getattr(model, 'pars')}
         setattr(PC_sim, 'sim_details', sim_details)
     
         return PC_sim
