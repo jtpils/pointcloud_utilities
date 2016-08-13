@@ -2,6 +2,8 @@ import pointcloud as pc
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import weibull_min
+from scipy.stats.kde import gaussian_kde
 
 class Mod(object):
     """ Base class for models, which interact with Voxel objects.
@@ -50,7 +52,7 @@ class WeibCDF(Mod): # make a base Weib class, then subclass for WeibCDF, WeibPDF
             bin_width ::: width of histogram bins (metres)
             c_guess ::: an initial guess for the `c` parameter
         """
-        self.model = sp.stats.weibull_min
+        self.model = weibull_min
         
         # Store model parameters
         self.c_guess = c_guess
@@ -183,6 +185,137 @@ class WeibCDF(Mod): # make a base Weib class, then subclass for WeibCDF, WeibPDF
             
         axarr[1, 2].legend(loc='best')
         fig.suptitle("centre: %s, bin width: %s"%(self.centre, self.bin_width))
+
+
+class KDERatio(Mod):
+    """ Carries out a Gaussian Kernel Density Estimation of the PDFs of both ALS and PDF,
+        returning the unaltered ratio of these values as a pdf function for estimation.
+        The resultant distribution should closely fit the input ALS, depending on the ALS bandwidth factor """
+
+    def __init__(self, vox, subset='all', factor=None):
+        """ Initialise model fitting with vox.
+        
+        Args:
+            vox ::: a vox.Voxel instance
+            subset ::: str choice of vox subset to model; 'all', 'tdc', 'hng' etc
+            factor ::: numeric KDE bandwidth factor for ALS (`None` for automatic)
+        """
+
+        self.centre = vox.centre
+        self.factor = factor
+        self.subset = subset
+        
+        # Get data from vox
+        self.A = vox.get_array('ALS', subset)
+        self.T = vox.get_array('TLS', subset)
+        
+        self.run_fitting()
+        
+    def run_fitting(self):
+        """Ensure voxel is valid and estimate ALS and TLS pdf with KDEs. """
+
+        self._check_data()
+        self._fit_model()
+        
+    def _check_data(self):
+        """ Ensure there are at least two ALS and TLS points.
+                If 1 point, a second point is added with value of +0.1 to original.
+                If 0 points, signal sent to abort fitting.
+        """
+
+        for dataset in ('A', 'T'):
+            D = getattr(self, dataset)
+            npoints = len(D)
+            if not npoints: # empty array
+                self.valid = False
+                return
+            if npoints == 1:
+                fake = D + 0.1
+                setattr(self, dataset, np.concatenate([D, fake]))  # clone height value
+        self.valid = True
+    
+    def _fit_model(self):
+        """ Make gaussian KDE for ALS and TLS."""
+
+        if self.valid:
+            self.kde_A = gaussian_kde(self.A, self.factor)
+            self.kde_T = gaussian_kde(self.T)
+            self.pars = {'A_factor': self.kde_T.factor, 'T_factor': self.kde_T.factor}
+        else: # constant pdf of 0 if data is empty
+            self.pdf = lambda x: 0
+            self.pars = None 
+        
+    def pdf(self, x):
+        """ Return the ALS/TLS ratio of kde pdfs at x """
+        
+        fx =  self.kde_A.pdf(x)/self.kde_T(x)
+        return fx
+    
+    def see_kde_fit(self, bin_width=1.):
+        """ Plot ALS and TLS histogram and KDE; KDE ratio; approximated simulated PDF."""
+
+        if not self.valid:
+            self._plot_empty()
+            return
+        
+        # xlabel mapping
+        labmap = {k: 'z (m)' for k in ('z', 'all', 'hng', 'nearground')}
+        labmap.update({k: 'Distance from canopy top (m)' for k in ('tdc', 'canopy')})
+        x_label = labmap[self.subset]
+        
+        # Histogram tdc data, for comparison
+        bin_edges, (dens_A, dens_T) = pc.histogram(self.A, self.T, density=True, bin_width=bin_width)
+        bins = edges_to_centres(bin_edges)
+        
+        # Determine pdfs over range
+        xs = np.linspace(bin_edges[0], bin_edges[-1], 100) # normally use bins, but now have option to use any values
+
+        # Compare histogram and KDE, and ratios
+        fig, axarr = plt.subplots(3,2, figsize=(12, 10), sharex=True)
+
+        # Histograms
+        axarr[0,0].bar(bins, dens_T, align='center', color='blue', label='TLS')
+        axarr[0,0].set_ylabel('Density')
+        axarr[0,0].set_title('TLS')
+        axarr[0,0].legend(loc='best')
+
+        axarr[0,1].bar(bins, dens_A, align='center', color='red', label='ALS')
+        axarr[0,1].set_title('ALS')
+        axarr[0,1].legend(loc='best')
+        
+        # KDE's
+        pdf_T = self.kde_T.pdf(xs)
+        axarr[1,0].plot(xs, pdf_T, color='blue')
+        axarr[1,0].set_ylabel('Density')
+        axarr[1,0].set_title('Kernel Density Estimate')
+        axarr[1,0].annotate("factor: %.3f"%self.pars['T_factor'], (0.73,0.9), xycoords='axes fraction')
+
+        axarr[1,1].plot(xs, self.kde_A.pdf(xs), color='red')
+        axarr[1,1].set_title('Kernel Density Estimate')
+        axarr[1,1].annotate("factor: %.3f"%self.pars['A_factor'], (0.73,0.9), xycoords='axes fraction')
+        
+        # KDE ratio
+        pdf_ratio = self.pdf(xs)
+        axarr[2,0].plot(xs, pdf_ratio, color='purple')
+        axarr[2,0].set_title('TLS/ALS KDE Ratio')
+
+        # Estimated ALS PDF (always identical to KDE pdf, since ratio is unaltered)
+        axarr[2,1].plot(xs, pdf_ratio*pdf_T, color='orange')
+        axarr[2,1].set_title('Simulated ALS PDF')
+
+        fig.suptitle('%s'%(self.centre,))
+        
+    def _plot_empty(self):
+        """ Plot nothing when data is invalid due to missing in ALS or TLS."""
+        fig, ax = plt.subplots(1)
+        ax.annotate("Can't plot, missing data", (0.35,0.5), xycoords='axes fraction')
+
+
+
+
+
+
+
         
         
 """ Helper functions """
@@ -190,3 +323,5 @@ class WeibCDF(Mod): # make a base Weib class, then subclass for WeibCDF, WeibPDF
 def edges_to_centres(bin_edges):
     """ Return a len n-1 central values of a len n array of bin edges."""
     return bin_edges[:-1] + (bin_edges[1:] - bin_edges[:-1])/2.
+
+

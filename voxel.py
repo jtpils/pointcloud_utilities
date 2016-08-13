@@ -170,8 +170,9 @@ class Grid(object):
         # Store model
         if not label: # use generic model name if not specified
             label = mod.__name__
-            if self.models.get(label): # warn if name not novel
-                warn("There were already models at `%s`, they will be overwritten"%name)
+            if label in self.models.keys(): # warn if name not novel
+                warntext = "There were already models at `%s`, they will be overwritten"%label
+                warn(warntext)
         
         self.models[label] = models
     
