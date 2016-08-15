@@ -241,8 +241,8 @@ class KDERatio(Mod):
             self.kde_A = gaussian_kde(self.A, self.factor)
             self.kde_T = gaussian_kde(self.T)
             self.pars = {'A_factor': self.kde_A.factor, 'T_factor': self.kde_T.factor}
-        else: # constant pdf of 0 if data is empty
-            self.pdf = lambda x: 0
+        else: # constant pdf of None if data is empty
+            self.pdf = lambda x: None
             self.pars = None 
         
     def pdf(self, x):
@@ -312,10 +312,10 @@ class KDERatio(Mod):
 
 
 class KDERatioQuick(KDERatio):
-    """A faster version of KDERatio which uses a look-up table to evaluate pdf(x)."""
+    """A faster version of KDERatio which uses a look-up table to evaluate pdf(x) instead of directly evaluating function."""
     
     def __init__(self, vox, subset='all', factor=None, LUT_intervals=1000):
-        """."""
+        """ Initialise like `KDERatio`, with LUT_intervals as int number of intervals to use in look-up table generation."""
         self.LUT_intervals = LUT_intervals
         super(KDERatioQuick, self).__init__(vox, subset, factor)
 
@@ -326,7 +326,12 @@ class KDERatioQuick(KDERatio):
         self._make_LUT()
 
     def _make_LUT(self):
-        """."""
+        """ Evaluate the KDE pdf ratio for a range of values of z to get a look-up table for self.pdf()."""
+
+        # Abort if invalid
+        if not self.valid:
+            return
+
         # Create LUT        
         zs = np.linspace(self.T.min(), self.T.max(), self.LUT_intervals) # sample entire z range in specified intervals
         fzs = 1.*self.kde_A.pdf(zs)/self.kde_T(zs)  # evaluate f(x) for LUT range
