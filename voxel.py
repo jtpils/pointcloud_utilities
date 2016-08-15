@@ -350,7 +350,7 @@ class Vox(object):
         # 
         if not model:
             try: # see if there is a model attatched
-                model = vox.model
+                model = self.model
             except AttributeError:
                 raise NoModelError, 'You need to pass an initialised model, or assign one to `vox.model`'
 
