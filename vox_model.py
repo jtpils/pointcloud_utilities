@@ -240,7 +240,7 @@ class KDERatio(Mod):
         if self.valid:
             self.kde_A = gaussian_kde(self.A, self.factor)
             self.kde_T = gaussian_kde(self.T)
-            self.pars = {'A_factor': self.kde_T.factor, 'T_factor': self.kde_T.factor}
+            self.pars = {'A_factor': self.kde_A.factor, 'T_factor': self.kde_T.factor}
         else: # constant pdf of 0 if data is empty
             self.pdf = lambda x: 0
             self.pars = None 
@@ -311,8 +311,45 @@ class KDERatio(Mod):
         ax.annotate("Can't plot, missing data", (0.35,0.5), xycoords='axes fraction')
 
 
+class KDERatioQuick(KDERatio):
+    """A faster version of KDERatio which uses a look-up table to evaluate pdf(x)."""
+    
+    def __init__(self, vox, subset='all', factor=None, LUT_intervals=1000):
+        """."""
+        self.LUT_intervals = LUT_intervals
+        super(KDERatioQuick, self).__init__(vox, subset, factor)
 
+    def run_fitting(self):
+        """ Fit model as per usual, and generate PDF LUT)"""
+        
+        super(KDERatioQuick, self).run_fitting()
+        self._make_LUT()
 
+    def _make_LUT(self):
+        """."""
+        # Create LUT        
+        zs = np.linspace(self.T.min(), self.T.max(), self.LUT_intervals) # sample entire z range in specified intervals
+        fzs = 1.*self.kde_A.pdf(zs)/self.kde_T(zs)  # evaluate f(x) for LUT range
+        self.LUT = np.vstack([zs, fzs]) # store LUT
+
+    def pdf(self, xs):
+        """ Return the ALS/TLS ratio of kde pdfs at the closest known values of xs """
+        
+        # Unpack LUT
+        zs, fzs = self.LUT
+
+        # Coerce numeric x to sequence
+        try:
+            len(xs)
+        except TypeError:
+            xs = np.array([xs,])
+        
+        # Estimate f(x) for x
+        fxs = np.empty_like(xs) # to store f(x) values
+        for i, x in enumerate(xs):
+            ix = np.abs(zs - x).argmin() # find index of closest z value in LUT
+            fxs[i] = fzs[ix] # use f(x) of nearest z
+        return fxs
 
 
 
