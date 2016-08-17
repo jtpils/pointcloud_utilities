@@ -406,7 +406,7 @@ def see_vertical_distribution(vox, subset='all', bin_width=1.):
     """ Plot vox PointClouds and associated joint histogram.
     Args:
         vox ::: a vox instance
-        subset ::: subset of data to plot ('all', 'tdc', 'hng')
+        subset ::: subset of data to plot ('all', 'canopy', 'nearground')
         bin_width ::: vertical resolution of histogram
     """
     fig, axarr = plt.subplots(ncols=4, sharey=True, figsize=(10, 6))
@@ -423,7 +423,7 @@ def see_vertical_distribution(vox, subset='all', bin_width=1.):
             # Specify PointCloud to get coordinates
             PC = getattr(vox, 'PC_'+dataset)
 
-            ix = vox.get_array(dataset, subset, True) # indices
+            ix = vox.get_array(dataset, subset, 'ix') # indices
             xs =  getattr(PC, x_axis)[ix]
             ys =  getattr(PC, 'z')[ix]
 
