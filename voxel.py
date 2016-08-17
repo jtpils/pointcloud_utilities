@@ -367,7 +367,7 @@ class Vox(object):
     
         return PC_sim
     
-    def pick(self, n, subset, pdf):
+    def pick(self, n, subset, form, pdf):
         """ Randomly pick `n` TLS points from either 'nearground', 'canopy' or 'all` according to 'pdf'.
         Args:
             n ::: number of points to pick, will be rounded
@@ -383,9 +383,8 @@ class Vox(object):
         """
         
         # Retrieve data        
-        zs = self.get_array('TLS', subset, False) # points to pick from
-        ix = self.get_array('TLS', subset, True) # their indices
-                      
+        zs = self.get_array('TLS', subset, form) # points to pick from
+        ix = self.get_array('TLS', subset, 'ix') # their indices
          
         try:
             probs = pdf(zs) # find probability of keeping any given point
