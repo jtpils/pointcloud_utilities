@@ -291,18 +291,17 @@ class Vox(object):
         self.class_ALS = self.z_ALS >= self._cutoff
         self.class_TLS = self.z_TLS >= self._cutoff
         
-    def get_array(self, dataset, subset, form, ix=False):
+    def get_array(self, dataset, subset, form):
         """Return vox z values in format specified by args
         
         Args:
             dataset ::: 'ALS' or 'TLS'
             subset ::: Entire dataset ('all'), above cutoff ('canopy', 'c'), or below cutoff ('nearground', 'ng')
-            form ::: Values in original z ('z'), normalised height ('h'), or top-down distances ('td')
-            ix ::: bool `True` for indices instead of values
+            form ::: Values in original z ('z'), normalised height ('h'), top-down distances ('td') or indices ('ix')
         Returns:
             array of the requested attribute
         Usage:
-            >>> vox.get_array(dataset='ALS', subset='c', form='td', ix=False) # get indices of top-down TLS canopy heights
+            >>> vox.get_array(dataset='ALS', subset='c', form='ix') # get indices of TLS canopy heights
         """
         # Sanitize input
         subset, form = subset.lower(), form.lower()
@@ -321,8 +320,9 @@ class Vox(object):
             ixs = ixs[~classif]
         else:
             raise TypeError, 'subset %s not recognised' % subset
-        
-        if ix: # return indices
+       
+        # Decide whether to return indices or process z's 
+        if form == 'ix': 
             return ixs 
         else:
             arr = arr[ixs] # subset the data
