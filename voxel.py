@@ -374,9 +374,11 @@ class Vox(object):
         ix_picks = self.pick(n, subset, form, model.pdf)
         PC_sim = self.PC_TLS[ix_picks]
 
+        # Set some descriptory information
         sim_details = {'model': type(model).__name__, 'pars': getattr(model, 'pars', None)}
         setattr(PC_sim, 'sim_details', sim_details)
-    
+        setattr(PC_sim, 'label', 'Simulated')
+ 
         return PC_sim
     
     def pick(self, n, subset, form, pdf):
