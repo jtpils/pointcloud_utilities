@@ -371,14 +371,15 @@ class Vox(object):
         """ Randomly pick `n` TLS points from either 'nearground', 'canopy' or 'all` according to 'pdf'.
         Args:
             n ::: number of points to pick, will be rounded
-            subset ::: TLS subset choice, either of 'z' ('all'), 'hng' ('nearground') or 'tdc' ('canopy')
-            pdf ::: any 1-arg function which determines f(x) for the array of values specified by `which`
+            subset ::: TLS subset choice, either of 'all', 'nearground'/'ng' or 'canopy'/'c'
+            form ::: str form of TLS values to supply to pdf choice, either 'z', topdown'/'td' or 'height'/'h'
+            pdf ::: any 1-arg function which determines f(x) for the array of values specified
         
         Returns:
             ix_keep ::: array the indices of chosen points
         
         Usage:
-            >>> vox.pick_from_TLS(6, 'tdc', lambda x: 0.5*x^2+21)
+            >>> vox.pick_from_TLS(6, 'canopy', 'topdown', lambda x: 0.5*x^2+21)
             array([34244,  7769, 36894, 35147, 12372,  7328])
         """
         
