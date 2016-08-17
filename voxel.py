@@ -30,8 +30,8 @@ class Grid(object):
     def _set_up_xy(self, plot_bounds, grid_size):
         """ Set up an evenly spaced grid over plot area with grid spacing as close as possible to grid_size."""
         
-        n_x = round(np.diff(plot_bounds['x'])/(grid_size*1.))
-        n_y = round(np.diff(plot_bounds['y'])/(grid_size*1.))
+        n_x = int(round(np.diff(plot_bounds['x'])/(grid_size*1.)))
+        n_y = int(round(np.diff(plot_bounds['y'])/(grid_size*1.)))
         
         # Determine edges of grid
         x_edges = np.linspace(*plot_bounds['x'], num=n_x+1)
