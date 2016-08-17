@@ -217,6 +217,7 @@ class Grid(object):
             npoints ::: either of:
                      :: numeric scalar or array, which will simply be returned unaltered
                      :: a 1-parameter function of the number of points in the specified subset of ALS
+            subset ::: 'all', 'canopy', nearground'
         Returns:
             n ::: npoints, or array of npoints function evaluated over the specified subset of ALS
         """
@@ -224,7 +225,7 @@ class Grid(object):
             n = np.round(npoints)
         except AttributeError: #  assume npoints to be a function
             # Get the number of points in the chosen subset
-            get_vox_npoints = np.vectorize(lambda vox, subset: len(vox.get_array('ALS', subset)))
+            get_vox_npoints = np.vectorize(lambda vox, subset: len(vox.get_array('ALS', subset, 'ix')))
             vox_npoints = get_vox_npoints(self.voxs, subset)
             
             # Apply function
