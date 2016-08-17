@@ -286,54 +286,58 @@ class Vox(object):
         self.highest_nearground = np.max(np.concatenate([self.z_ALS[~self.class_ALS], self.z_TLS[~self.class_TLS]]))
         self.lowest_canopy = np.min(np.concatenate([self.z_ALS[self.class_ALS], self.z_TLS[self.class_TLS]]))
         
-        # Set absolute heights (normal for nearground and top-down for canopy)
-        self._set_top_down_canopy_distances()
-        self._set_nearground_heights()
-        
     def _classify_points(self):
         """ Classify points to nearground (0) and canopy (1) based on a simple cutoff. """
         self.class_ALS = self.z_ALS >= self._cutoff
         self.class_TLS = self.z_TLS >= self._cutoff
         
-    def _set_top_down_canopy_distances(self):
-        """ Set the top-down heights for canopy data, and associated indices."""    
-        
-        self.tdc_ALS = self.highest - self.z_ALS[self.class_ALS]
-        self.tdc_TLS = self.highest - self.z_TLS[self.class_TLS]
-       
-        self.ix_tdc_ALS = self.ix_z_ALS[self.class_ALS]
-        self.ix_tdc_TLS = self.ix_z_TLS[self.class_TLS]
-    
-    def _set_nearground_heights(self):
-        """ Set the heights from ground of nearground points, and associated indices"""
-        self.hng_ALS = self.z_ALS[~self.class_ALS] - self.lowest
-        self.hng_TLS = self.z_TLS[~self.class_TLS] - self.lowest
-        
-        self.ix_hng_ALS = self.ix_z_ALS[~self.class_ALS]
-        self.ix_hng_TLS = self.ix_z_TLS[~self.class_TLS]
-
-    def get_array(self, dataset, subset, ix=False):
-        """Return vox attribute specified by args
+    def get_array(self, dataset, subset, form, ix=False):
+        """Return vox z values in format specified by args
         
         Args:
             dataset ::: 'ALS' or 'TLS'
-            subset ::: 'all', 'tdc', 'hng'
-            ix ::: bool `True` for indices instead of 
+            subset ::: Entire dataset ('all'), above cutoff ('canopy', 'c'), or below cutoff ('nearground', 'ng')
+            form ::: Values in original z ('z'), normalised height ('h'), or top-down distances ('td')
+            ix ::: bool `True` for indices instead of values
         Returns:
             array of the requested attribute
         Usage:
-            >>> get_array('TLS', 'canopy', ix=True) # get indices of top-down TLS canopy heights
+            >>> vox.get_array(dataset='ALS', subset='c', form='td', ix=False) # get indices of top-down TLS canopy heights
         """
-        # Use ix prefix, if requested
-        ix = 'ix_' if ix else ''
-        # Mappings for subset labels
-        subset_map = {'all': 'z',  'z': 'z', 'tdc': 'tdc', 'canopy': 'tdc', 'hng': 'hng', 'nearground': 'hng'} 
-        sub = subset_map[subset]+'_'
+        # Sanitize input
+        subset, form = subset.lower(), form.lower()
         
-        # Construct attribute name
-        attr_name = ix + sub + dataset
+        # Get unaltered dataset
+        arr = getattr(self, 'z_' + dataset) # z component of coordinates
+        ixs = getattr(self, 'ix_z_' + dataset) # indices       
+        classif = getattr(self, 'class_' + dataset) # canopy/ground threshold
         
-        return getattr(self, attr_name)
+        # Subset the indicies as required
+        if subset in ['all','z', 'zs', None]:
+            pass
+        elif subset in ['canopy', 'c']:
+            ixs = ixs[classif]
+        elif subset in ['nearground', 'ng']:
+            ixs = ixs[~classif]
+        else:
+            raise TypeError, 'subset %s not recognised' % subset
+        
+        if ix: # return indices
+            return ixs 
+        else:
+            arr = arr[ixs] # subset the data
+        
+        # Process the z array
+        if form in ['z', None]:
+            pass # keep as is
+        elif form in ['height', 'h']:
+            arr = arr - self.lowest
+        elif form in ['top-down', 'topdown', 'td']:
+            arr = self.highest - arr
+        else:
+            raise TypeError, 'form %s not recognised' % form
+  
+        return arr
     
     def simulate_pointcloud(self, n, subset, model=None):
         """ Apply vox model to select n TLS points and return simulated PointCloud.
