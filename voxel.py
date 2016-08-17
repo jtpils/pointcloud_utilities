@@ -22,7 +22,7 @@ class Grid(object):
         self._set_up_xy(plot_bounds, grid_size)
         if pointclouds:
             self._initialise_with_pointclouds(pointclouds, cutoff)
-        
+         
         # Empty dicts to store models and simulated PointClouds
         self.models = {}
         self.SIM = {}
@@ -149,16 +149,16 @@ class Grid(object):
         
         return voxs
     
-    def fit_models(self, mod, mod_pars, label=None):
+    def fit_models(self, mod, mod_pars, model_key=None):
         """ Create a new grid of the specified Model fitted to each voxel.
 
         Args:
             mod ::: vox_model.Model model to fit
             mod_pars ::: dict parameters used to initialise mod
-            label ::: str label for model used as dict key (default: mod.__name__)
+            model_key ::: str label for model used as dict key (default: mod.__name__)
 
         Assigns:
-            2D array of models to self.models[label]
+            2D array of models to self.models[model_key]
         """
 
         # Vectorised fitting function
@@ -168,22 +168,22 @@ class Grid(object):
         models = fit_mods(self.voxs, mod, mod_pars)
 
         # Store model
-        if not label: # use generic model name if not specified
-            label = mod.__name__
-            if label in self.models.keys(): # warn if name not novel
-                warntext = "There were already models at `%s`, they will be overwritten"%label
+        if not model_key: # use generic model name if not specified
+            model_key = mod.__name__
+            if model_key in self.models.keys(): # warn if name not novel
+                warntext = "There were already models at `%s`, they will be overwritten"%model_key
                 warn(warntext)
         
-        self.models[label] = models
+        self.models[model_key] = models
     
-    def adjust_models(self, label, adjustments):
+    def adjust_models(self, model_key, adjustments):
         """ Apply adjustments to model parameters.
         Args:
-            label ::: str key of models in in grid.models
+            model_key ::: str key of models in in grid.models
             adjustments ::: dict of adjustment functions to apply to model parameters {'par': func}
         """
         # Retrieve models
-        models = self.models[label]
+        models = self.models[model_key]
         # Adjust models
         adjust = np.vectorize(lambda mod, adjustments: mod.adjust_pars(adjustments))
         adjust(models, adjustments)
@@ -191,23 +191,33 @@ class Grid(object):
     def simulate_ALS(self, setup):
         """ Simulate the ALS dataset.
         Args:
-            setup ::: dict of {'subset': ('label', n_points)}, where
-                   :: subset :: valid subset of ALS (e.g. 'tdc'), optionally used to determine npoints
-                   :: label :: key of self.models to use
-                   :: npoints :: number of points to simulate
+            setup ::: dict of {'subset': setup_pars}, where
+                   :: subset :: valid subset of ALS (e.g. 'canopy') to simulate, also optionally used to determine npoints
+                   :: pars :: dict of:
+                    : model_key : key of self.models to use
+                    : form : form of data to pass to model ('z', 'topdown', 'height')
+                    : npoints : number of points to simulate
                         can be scalar or array of numeric, or 1-param function to apply to npoints of ALS subset
         Returns:
             dict {subset: PC_grid} grid of simulated PointCloud objects for each subset
+        
+        Usage:
+            >>> subset: simulate_ALS({'model_key': 'KDERatio', 'form': 'topdown', 'npoints': lambda n: n * 3}) 
         """
     
-        simulate = np.vectorize(lambda vox, n, subset, model: vox.simulate_pointcloud(n, subset, model))
+        simulate = np.vectorize(lambda vox, n, subset, form, model: vox.simulate_pointcloud(n, subset, form,  model))
         sims = {}
         
         # Simulate data for each subset according to setup
-        for subset, (label, npoints) in setup.iteritems():
-            models = self.models[label]
+        for subset, pars in setup.iteritems():
+            # Extract parameters
+            model_key = pars.pop('model_key')
+            form = pars.pop('form', 'z') # use z if not otherwise specified
+            npoints = pars.pop('npoints')
+            
+            models = self.models[model_key]
             n = self._process_npoints(npoints, subset)
-            sims[subset] = simulate(self.voxs, n, subset, models)
+            sims[subset] = simulate(self.voxs, n, subset, form, models)
         
         return sims
 
@@ -340,19 +350,20 @@ class Vox(object):
   
         return arr
     
-    def simulate_pointcloud(self, n, subset, model=None):
+    def simulate_pointcloud(self, n, subset, form, model=None):
         """ Apply vox model to select n TLS points and return simulated PointCloud.
 
         Args:
             n ::: number of points to pick (will be rounded)
-            which ::: str name of subset of PointCloud to pick
+            subset ::: str name of subset of PointCloud to pick
+            form ::: str form of data to pass to model
             model ::: a initialised instance of a model (vox_model.Model, etc) containing a `pdf` attribute
         Returns:
             PC_sim ::: PointCloud containing selected Points
         """
         # Initialise simulation
         n = int(round(n)) # can only use whole points
-        # 
+        
         if not model:
             try: # see if there is a model attatched
                 model = self.model
@@ -360,10 +371,10 @@ class Vox(object):
                 raise NoModelError, 'You need to pass an initialised model, or assign one to `vox.model`'
 
         # Pick points
-        ix_picks = self.pick(n, subset, model.pdf)
+        ix_picks = self.pick(n, subset, form, model.pdf)
         PC_sim = self.PC_TLS[ix_picks]
 
-        sim_details = {'model': type(model).__name__, 'pars': getattr(model, 'pars')}
+        sim_details = {'model': type(model).__name__, 'pars': getattr(model, 'pars', None)}
         setattr(PC_sim, 'sim_details', sim_details)
     
         return PC_sim

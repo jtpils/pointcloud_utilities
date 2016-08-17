@@ -192,7 +192,7 @@ class KDERatio(Mod):
         returning the unaltered ratio of these values as a pdf function for estimation.
         The resultant distribution should closely fit the input ALS, depending on the ALS bandwidth factor """
 
-    def __init__(self, vox, subset='all', factor=None):
+    def __init__(self, vox, subset='all', form='z', factor=None):
         """ Initialise model fitting with vox.
         
         Args:
@@ -204,10 +204,11 @@ class KDERatio(Mod):
         self.centre = vox.centre
         self.factor = factor
         self.subset = subset
+        self.form = form
         
         # Get data from vox
-        self.A = vox.get_array('ALS', subset)
-        self.T = vox.get_array('TLS', subset)
+        self.A = vox.get_array('ALS', subset, form)
+        self.T = vox.get_array('TLS', subset, form)
         
         self.run_fitting()
         
@@ -314,10 +315,10 @@ class KDERatio(Mod):
 class KDERatioQuick(KDERatio):
     """A faster version of KDERatio which uses a look-up table to evaluate pdf(x) instead of directly evaluating function."""
     
-    def __init__(self, vox, subset='all', factor=None, LUT_intervals=1000):
+    def __init__(self, vox, subset='all', form='z', factor=None, LUT_intervals=1000):
         """ Initialise like `KDERatio`, with LUT_intervals as int number of intervals to use in look-up table generation."""
         self.LUT_intervals = LUT_intervals
-        super(KDERatioQuick, self).__init__(vox, subset, factor)
+        super(KDERatioQuick, self).__init__(vox, subset, form, factor)
 
     def run_fitting(self):
         """ Fit model as per usual, and generate PDF LUT)"""
