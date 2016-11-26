@@ -6,5 +6,6 @@ setup(name='pointcloud_utilities',
       classifiers=['Development Status :: 2 - Pre-Alpha',
                    'Programming Language :: Python'],
       keywords='pointcloud lidar ALS TLS',
+      url='https://github.com/stainbank/pointcloud_utilities',
       packages=find_packages(),
       install_requires=['laspy', 'matplotlib', 'numpy'])
